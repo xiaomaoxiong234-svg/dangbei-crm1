@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>达人合作管理看板</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f10;
+    --surface: #1a1a1d;
+    --surface2: #242428;
+    --border: #2e2e33;
+    --accent: #e8ff47;
+    --accent2: #47c8ff;
+    --accent3: #ff6b6b;
+    --text: #f0f0f0;
+    --text2: #888;
+    --text3: #555;
+    --douyin: #fe2c55;
+    --xiaohongshu: #ff2442;
+    --bilibili: #00a1d6;
+    --radius: 10px;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Noto Sans SC', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+  /* HEADER */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 28px; border-bottom: 1px solid var(--border);
+    background: var(--surface); position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-dot { width: 10px; height: 10px; background: var(--accent); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .logo-text { font-size: 15px; font-weight: 700; letter-spacing: .5px; }
+  .header-actions { display: flex; gap: 10px; }
+  .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-family: var(--sans); font-size: 13px; font-weight: 500; transition: all .15s; }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #d4eb3a; transform: translateY(-1px); }
+  .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 1px; background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-item {
+    background: var(--surface); padding: 14px 20px; cursor: pointer;
+    transition: background .15s; position: relative;
+  }
+  .stat-item:hover { background: var(--surface2); }
+  .stat-item.active { background: var(--surface2); }
+  .stat-item.active::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px; background: var(--accent);
+  }
+  .stat-num { font-size: 22px; font-weight: 700; font-family: var(--mono); color: var(--accent); }
+  .stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* MAIN */
+  .main { padding: 24px 28px; }
+
+  /* FILTER ROW */
+  .filter-row { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+  .search-box {
+    flex: 1; min-width: 200px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 14px; color: var(--text); font-family: var(--sans); font-size: 13px;
+    outline: none; transition: border-color .15s;
+  }
+  .search-box:focus { border-color: var(--accent); }
+  .search-box::placeholder { color: var(--text3); }
+  .filter-chip {
+    padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border);
+    background: transparent; color: var(--text2); font-size: 12px; cursor: pointer;
+    font-family: var(--sans); transition: all .15s;
+  }
+  .filter-chip:hover, .filter-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,.07); }
+
+  /* KANBAN */
+  .kanban { display: grid; grid-template-columns: repeat(7, minmax(200px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 20px; }
+  .column { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); min-height: 400px; display: flex; flex-direction: column; }
+  .col-header { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .col-title { font-size: 12px; font-weight: 600; letter-spacing: .5px; }
+  .col-count { font-size: 11px; font-family: var(--mono); background: var(--surface2); padding: 2px 8px; border-radius: 10px; color: var(--text2); }
+  .col-body { padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+  /* STAGE COLORS */
+  .stage-0 .col-header { border-top: 3px solid #888; border-radius: var(--radius) var(--radius) 0 0; }
+  .stage-1 .col-header { border-top: 3px solid var(--accent2); border-radius: var(--radius) var(--radius) 0 0; }
+  .stage-2 .col-header { border-top: 3px solid #ff9f43; border-radius: var(--radius) var(--radius) 0 0; }
+  .stage-3 .col-header { border-top: 3px solid #a29bfe; border-radius: var(--radius) var(--radius) 0 0; }
+  .stage-4 .col-header { border-top: 3px solid #fd79a8; border-radius: var(--radius) var(--radius) 0 0; }
+  .stage-5 .col-header { border-top: 3px solid var(--accent); border-radius: var(--radius) var(--radius) 0 0; }
+  .stage-6 .col-header { border-top: 3px solid #55efc4; border-radius: var(--radius) var(--radius) 0 0; }
+
+  /* CARD */
+  .card {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; cursor: pointer; transition: all .15s; position: relative;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(232,255,71,.08); }
+  .card-platform { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-bottom: 8px; }
+  .platform-douyin { background: rgba(254,44,85,.15); color: var(--douyin); }
+  .platform-xiaohongshu { background: rgba(255,36,66,.15); color: var(--xiaohongshu); }
+  .platform-bilibili { background: rgba(0,161,214,.15); color: var(--bilibili); }
+  .card-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .card-fans { font-size: 11px; color: var(--text2); font-family: var(--mono); }
+  .card-type { position: absolute; top: 10px; right: 10px; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+  .type-jipai { background: rgba(71,200,255,.15); color: var(--accent2); }
+  .type-songpai { background: rgba(255,107,107,.15); color: var(--accent3); }
+  .card-meta { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; }
+  .card-tag { font-size: 10px; color: var(--text3); background: var(--surface); padding: 2px 6px; border-radius: 4px; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    z-index: 1000; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto;
+    animation: slideUp .2s ease;
+  }
+  @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 16px; font-weight: 700; }
+  .modal-close { background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; line-height: 1; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 11px; color: var(--text2); font-weight: 600; letter-spacing: .5px; text-transform: uppercase; }
+  .form-input, .form-select, .form-textarea {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; color: var(--text); font-family: var(--sans); font-size: 13px;
+    outline: none; transition: border-color .15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-select option { background: var(--surface2); }
+  .form-textarea { resize: vertical; min-height: 70px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* DINGTALK GENERATOR */
+  .dingtalk-box {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; margin-top: 8px;
+  }
+  .dingtalk-title { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+  .dingtalk-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .dingtalk-field-label { font-size: 10px; color: var(--text3); }
+  .dingtalk-field-value { font-size: 12px; color: var(--text); font-family: var(--mono); background: var(--surface); padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border); word-break: break-all; }
+  .copy-all-btn { width: 100%; padding: 10px; background: rgba(232,255,71,.1); border: 1px solid rgba(232,255,71,.3); border-radius: 8px; color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--sans); transition: all .15s; }
+  .copy-all-btn:hover { background: rgba(232,255,71,.2); }
+
+  /* DETAIL MODAL TABS */
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin: 0 24px; }
+  .tab { padding: 12px 16px; font-size: 13px; color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-content { display: none; padding: 20px 24px; }
+  .tab-content.active { display: block; }
+
+  /* STAGE SELECTOR */
+  .stage-selector { display: flex; flex-wrap: wrap; gap: 8px; }
+  .stage-btn { padding: 7px 14px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text2); font-size: 12px; cursor: pointer; font-family: var(--sans); transition: all .15s; }
+  .stage-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(232,255,71,.07); }
+
+  /* DATA SECTION */
+  .data-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .data-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .data-card-num { font-size: 24px; font-weight: 700; font-family: var(--mono); color: var(--accent); }
+  .data-card-label { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--accent); color: #000; padding: 10px 20px; border-radius: 8px;
+    font-size: 13px; font-weight: 600; z-index: 9999; transition: transform .3s ease;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* EMPTY STATE */
+  .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px 10px; gap: 8px; }
+  .empty-icon { font-size: 28px; opacity: .3; }
+  .empty-text { font-size: 11px; color: var(--text3); text-align: center; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  @media (max-width: 768px) {
+    .stats-bar { grid-template-columns: repeat(4, 1fr); }
+    .header { padding: 14px 16px; }
+    .main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    <span class="logo-text">当贝达人合作看板</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="openProductModal()">⚙ 产品管理</button>
+    <button class="btn btn-ghost" onclick="exportData()">导出数据</button>
+    <button class="btn btn-primary" onclick="openAddModal()">＋ 新增达人</button>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="main">
+  <div class="filter-row">
+    <input type="text" class="search-box" placeholder="搜索达人昵称..." id="searchInput" oninput="renderKanban()">
+    <button class="filter-chip active" onclick="filterPlatform(this,'all')">全部平台</button>
+    <button class="filter-chip" onclick="filterPlatform(this,'抖音')">抖音</button>
+    <button class="filter-chip" onclick="filterPlatform(this,'小红书')">小红书</button>
+    <button class="filter-chip" onclick="filterPlatform(this,'B站')">B站</button>
+  </div>
+  <div class="kanban" id="kanban"></div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">新增达人</span>
+      <button class="modal-close" onclick="closeModal('addModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">平台</label>
+          <select class="form-select" id="f_platform">
+            <option value="抖音">抖音</option>
+            <option value="小红书">小红书</option>
+            <option value="B站">B站</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">达人昵称</label>
+          <input class="form-input" id="f_name" placeholder="如：胡闹波波">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">粉丝量</label>
+          <input class="form-input" id="f_fans" placeholder="如：12.5万">
+        </div>
+        <div class="form-group">
+          <label class="form-label">内容垂类</label>
+          <input class="form-input" id="f_category" placeholder="如：职场干货">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">合作类型</label>
+          <select class="form-select" id="f_type">
+            <option value="寄拍">寄拍（归还）</option>
+            <option value="送拍">送拍（不归还）</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">寄样产品</label>
+          <select class="form-select" id="f_product"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">报价（元）</label>
+          <input class="form-input" id="f_price" placeholder="如：3000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">档期</label>
+          <input class="form-input" id="f_schedule" placeholder="如：4月第2周">
+        </div>
+      </div>
+
+      <!-- 收件信息 -->
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-top:4px;">收件信息</div>
+      <div class="form-group">
+        <label class="form-label">姓名 / 手机号 / 地址</label>
+        <textarea class="form-textarea" id="f_shipping" placeholder="直接粘贴达人发来的收件信息即可，如：&#10;张三 138xxxx8888 广东省深圳市南山区xx路xx号" style="min-height:90px"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">备注</label>
+        <textarea class="form-textarea" id="f_note" placeholder="合作备注、特殊要求等..."></textarea>
+      </div>
+
+      <!-- 钉钉OA生成器 -->
+      <div id="dingtalkBox" style="display:none">
+        <div class="dingtalk-title">📋 钉钉OA填写内容（一键复制）</div>
+        <div id="dingtalkFields"></div>
+        <button class="copy-all-btn" onclick="copyDingtalk()">复制全部信息</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addModal')">取消</button>
+      <button class="btn btn-ghost" onclick="generateDingtalk()" id="genBtn" style="display:none">生成钉钉信息</button>
+      <button class="btn btn-primary" onclick="saveInfluencer()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="d_name"></div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px" id="d_sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('detailModal')">×</button>
+    </div>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'tab_info')">基本信息</div>
+      <div class="tab" onclick="switchTab(this,'tab_stage')">进度管理</div>
+      <div class="tab" onclick="switchTab(this,'tab_dingtalk')">寄样OA</div>
+      <div class="tab" onclick="switchTab(this,'tab_data')">投放数据</div>
+    </div>
+    <div class="tab-content active" id="tab_info">
+      <div id="d_info_content"></div>
+    </div>
+    <div class="tab-content" id="tab_stage">
+      <div style="margin-bottom:14px;font-size:13px;color:var(--text2)">点击更新当前合作阶段</div>
+      <div class="stage-selector" id="d_stage_selector"></div>
+      <div style="margin-top:20px">
+        <div class="form-group">
+          <label class="form-label">备注更新</label>
+          <textarea class="form-textarea" id="d_note_input" placeholder="添加跟进备注..."></textarea>
+        </div>
+        <button class="btn btn-primary" style="margin-top:10px;width:100%" onclick="saveStageUpdate()">保存更新</button>
+      </div>
+    </div>
+    <div class="tab-content" id="tab_dingtalk">
+      <div id="d_dingtalk_content"></div>
+    </div>
+    <div class="tab-content" id="tab_data">
+      <div id="d_data_content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT MANAGEMENT MODAL -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">产品管理</span>
+      <button class="modal-close" onclick="closeModal('productModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px">当前产品列表（可删除）</div>
+      <div id="productList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">新增产品</div>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="newProductInput" placeholder="输入产品名称，如：当贝Air1 白色" style="flex:1">
+        <button class="btn btn-primary" onclick="addProduct()">添加</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('productModal')">完成</button>
+    </div>
+  </div>
+</div>
+
+
+
+<script>
+const SUPABASE_URL = 'https://prbqptnuszudxrtqkdgc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByYnFwdG51c3p1ZHhydHFrZGdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MTQ4MTksImV4cCI6MjA5MDQ5MDgxOX0.63AO-g5Hf6FN4lwMrArO9gm2lMy_wMYm5Jo-xf0jxvg';
+
+const STAGES = ['接洽中','已确认合作','寄样待提交','寄样已提交','脚本审核中','拍摄中','已发布'];
+const STAGE_COLORS = ['#888','#47c8ff','#ff9f43','#a29bfe','#fd79a8','#e8ff47','#55efc4'];
+
+const DEFAULT_PRODUCTS = ['当贝Air1白色耳机','当贝Air1黑色耳机','当贝Air1白色耳机+充电支架白色','当贝Air1黑色耳机+充电支架黑色'];
+
+let data = [];
+let products = JSON.parse(localStorage.getItem('dbcrm_products') || JSON.stringify(DEFAULT_PRODUCTS));
+let currentFilter = 'all';
+let editingId = null;
+let detailId = null;
+
+async function sbFetch(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': options.prefer || '',
+      ...options.headers
+    }
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function loadData() {
+  try {
+    data = await sbFetch('influencers?order=created_at.asc') || [];
+    renderStats();
+    renderKanban();
+  } catch(e) {
+    toast('数据加载失败，请刷新重试');
+    console.error(e);
+  }
+}
+
+async function save(record) {
+  try {
+    await sbFetch('influencers', {
+      method: 'POST',
+      prefer: 'resolution=merge-duplicates',
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify(record)
+    });
+  } catch(e) {
+    toast('保存失败：' + e.message);
+    throw e;
+  }
+}
+
+async function deleteRecord(id) {
+  await sbFetch(`influencers?id=eq.${id}`, { method: 'DELETE' });
+}
+
+function saveProducts() { localStorage.setItem('dbcrm_products', JSON.stringify(products)); }
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function populateProductSelect(selectedVal) {
+  const sel = document.getElementById('f_product');
+  if (!sel) return;
+  sel.innerHTML = products.map(p => `<option value="${p}" ${p===selectedVal?'selected':''}>${p}</option>`).join('');
+}
+
+// PRODUCT MANAGEMENT
+function openProductModal() {
+  renderProductList();
+  document.getElementById('productModal').classList.add('open');
+}
+
+function renderProductList() {
+  document.getElementById('productList').innerHTML = products.length === 0
+    ? `<div style="color:var(--text3);font-size:12px">暂无产品，请添加</div>`
+    : products.map((p, i) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px">
+        <span style="font-size:13px">${p}</span>
+        <button onclick="removeProduct(${i})" style="background:none;border:none;color:var(--accent3);cursor:pointer;font-size:16px;line-height:1">×</button>
+      </div>
+    `).join('');
+}
+
+function addProduct() {
+  const val = document.getElementById('newProductInput').value.trim();
+  if (!val) { toast('请输入产品名称'); return; }
+  if (products.includes(val)) { toast('产品已存在'); return; }
+  products.push(val);
+  saveProducts();
+  document.getElementById('newProductInput').value = '';
+  renderProductList();
+  toast('产品已添加');
+}
+
+function removeProduct(i) {
+  if (!confirm(`确认删除「${products[i]}」？`)) return;
+  products.splice(i, 1);
+  saveProducts();
+  renderProductList();
+  toast('已删除');
+}
+
+
+function filterPlatform(el, platform) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentFilter = platform;
+  renderKanban();
+}
+
+function getFiltered() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  return data.filter(d => {
+    const matchPlatform = currentFilter === 'all' || d.platform === currentFilter;
+    const matchQ = !q || d.name.toLowerCase().includes(q);
+    return matchPlatform && matchQ;
+  });
+}
+
+function renderStats() {
+  const bar = document.getElementById('statsBar');
+  const counts = STAGES.map((s, i) => data.filter(d => d.stage === i).length);
+  bar.innerHTML = STAGES.map((s, i) => `
+    <div class="stat-item stage-${i}" onclick="scrollToStage(${i})">
+      <div class="stat-num" style="color:${STAGE_COLORS[i]}">${counts[i]}</div>
+      <div class="stat-label">${s}</div>
+    </div>
+  `).join('');
+}
+
+function scrollToStage(i) {
+  document.querySelectorAll('.column')[i]?.scrollIntoView({behavior:'smooth', inline:'center'});
+}
+
+function renderKanban() {
+  const filtered = getFiltered();
+  const kanban = document.getElementById('kanban');
+  kanban.innerHTML = STAGES.map((stage, i) => {
+    const cards = filtered.filter(d => d.stage === i);
+    return `
+      <div class="column stage-${i}">
+        <div class="col-header">
+          <span class="col-title" style="color:${STAGE_COLORS[i]}">${stage}</span>
+          <span class="col-count">${cards.length}</span>
+        </div>
+        <div class="col-body">
+          ${cards.length === 0 ? `<div class="empty"><div class="empty-icon">○</div><div class="empty-text">暂无达人</div></div>` : ''}
+          ${cards.map(d => renderCard(d)).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderCard(d) {
+  const pClass = d.platform === '抖音' ? 'platform-douyin' : d.platform === '小红书' ? 'platform-xiaohongshu' : 'platform-bilibili';
+  const tClass = d.type === '寄拍' ? 'type-jipai' : 'type-songpai';
+  return `
+    <div class="card" onclick="openDetail('${d.id}')">
+      <span class="card-platform ${pClass}">${d.platform}</span>
+      <span class="card-type ${tClass}">${d.type}</span>
+      <div class="card-name">${d.name}</div>
+      <div class="card-fans">粉丝 ${d.fans || '-'}</div>
+      ${d.category || d.schedule ? `<div class="card-meta">
+        ${d.category ? `<span class="card-tag">${d.category}</span>` : ''}
+        ${d.schedule ? `<span class="card-tag">📅 ${d.schedule}</span>` : ''}
+        ${d.price ? `<span class="card-tag">¥${d.price}</span>` : ''}
+      </div>` : ''}
+    </div>
+  `;
+}
+
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = '新增达人';
+  ['platform','name','fans','category','type','price','schedule','note'].forEach(k => {
+    const el = document.getElementById('f_' + k);
+    if (el) el.value = k === 'platform' ? '抖音' : k === 'type' ? '寄拍' : '';
+  });
+  document.getElementById('f_shipping').value = '';
+  populateProductSelect('');
+  document.getElementById('dingtalkBox').style.display = 'none';
+  document.getElementById('genBtn').style.display = 'inline-block';
+  document.getElementById('addModal').classList.add('open');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+async function saveInfluencer() {
+  const name = document.getElementById('f_name').value.trim();
+  if (!name) { toast('请填写达人昵称'); return; }
+  const existing = editingId ? data.find(d => d.id === editingId) : null;
+  const obj = {
+    id: editingId || uid(),
+    platform: document.getElementById('f_platform').value,
+    name,
+    fans: document.getElementById('f_fans').value,
+    category: document.getElementById('f_category').value,
+    type: document.getElementById('f_type').value,
+    product: document.getElementById('f_product').value,
+    price: document.getElementById('f_price').value,
+    schedule: document.getElementById('f_schedule').value,
+    shipping: document.getElementById('f_shipping').value,
+    note: document.getElementById('f_note').value,
+    stage: existing?.stage || 0,
+    created_at: existing?.created_at || Date.now(),
+    views: existing?.views || '',
+    likes: existing?.likes || '',
+    comments: existing?.comments || '',
+    conversions: existing?.conversions || ''
+  };
+  try {
+    await save(obj);
+    await loadData();
+    closeModal('addModal');
+    toast(editingId ? '已更新达人信息' : '已新增达人');
+  } catch(e) {}
+}
+
+function generateDingtalk() {
+  const platform = document.getElementById('f_platform').value;
+  const name = document.getElementById('f_name').value.trim();
+  const product = document.getElementById('f_product').value;
+  const type = document.getElementById('f_type').value;
+  const shipping = document.getElementById('f_shipping').value.trim();
+  if (!name) { toast('请先填写达人昵称'); return; }
+  const title = `${platform}-${name}-${product}-${type}`;
+  const appType = type === '寄拍' ? '物品内部借用（将归还仓库）' : '物品外赠（不归还，产品外寄客户，进部门费用）';
+  const fields = [
+    { label: '申请类型', value: appType },
+    { label: '标题', value: title },
+    { label: '发布类型', value: '仓库自行发货' },
+    ...(type === '送拍' ? [
+      { label: '渠道类型', value: '品牌推广-公共' },
+      { label: '产品线', value: '硬件当贝-自研' }
+    ] : []),
+    { label: '物品名称', value: product },
+    { label: '状态', value: '全新机' },
+    ...(type === '寄拍' ? [{ label: '归还时间', value: '种草后归还' }] : []),
+    { label: '物品用途', value: '达人种草' },
+    { label: '业务所属公司', value: '杭州当贝' },
+    { label: '数量', value: '1' },
+    { label: '领用详情', value: '达人种草' },
+    { label: '收件人信息', value: shipping || '（请填写）' },
+  ];
+  document.getElementById('dingtalkFields').innerHTML = fields.map(f => `
+    <div class="dingtalk-field">
+      <div class="dingtalk-field-label">${f.label}</div>
+      <div class="dingtalk-field-value">${f.value}</div>
+    </div>
+  `).join('');
+  document.getElementById('dingtalkBox').style.display = 'block';
+  document.getElementById('dingtalkBox')._fields = fields;
+}
+
+function copyDingtalk() {
+  const box = document.getElementById('dingtalkBox');
+  const fields = box._fields || [];
+  const text = fields.map(f => `【${f.label}】${f.value}`).join('\n');
+  navigator.clipboard.writeText(text).then(() => toast('已复制到剪贴板'));
+}
+
+function openDetail(id) {
+  detailId = id;
+  const d = data.find(x => x.id === id);
+  if (!d) return;
+  document.getElementById('d_name').textContent = d.name;
+  document.getElementById('d_sub').textContent = `${d.platform} · ${d.fans || '-'} · ${d.category || '-'}`;
+
+  // info tab
+  document.getElementById('d_info_content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${[
+        ['平台', d.platform], ['粉丝量', d.fans||'-'], ['垂类', d.category||'-'],
+        ['合作类型', d.type], ['寄样产品', d.product||'-'], ['报价', d.price ? '¥'+d.price : '-'],
+        ['档期', d.schedule||'-'],
+      ].map(([k,v]) => `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">${k}</div>
+        <div style="font-size:13px">${v}</div>
+      </div>`).join('')}
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;grid-column:1/-1">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">收件信息</div>
+        <div style="font-size:13px;white-space:pre-wrap">${d.shipping||'-'}</div>
+      </div>
+      ${d.note ? `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;grid-column:1/-1">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px">备注</div>
+        <div style="font-size:13px">${d.note}</div>
+      </div>` : ''}
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="editInfluencer('${d.id}')">编辑信息</button>
+      <button class="btn btn-ghost" style="flex:1;color:var(--accent3);border-color:var(--accent3)" onclick="deleteInfluencer('${d.id}')">删除达人</button>
+    </div>
+  `;
+    <div style="margin-top:14px;display:flex;gap:10px">
+      <button class="btn btn-ghost" style="flex:1" onclick="editInfluencer('${d.id}')">编辑信息</button>
+      <button class="btn btn-ghost" style="flex:1;color:var(--accent3);border-color:var(--accent3)" onclick="deleteInfluencer('${d.id}')">删除达人</button>
+    </div>
+  `;
+
+  // stage tab
+  document.getElementById('d_stage_selector').innerHTML = STAGES.map((s, i) => `
+    <button class="stage-btn ${d.stage === i ? 'active' : ''}" onclick="setStage(${i})" style="${d.stage===i?'border-color:'+STAGE_COLORS[i]+';color:'+STAGE_COLORS[i]:''}">${s}</button>
+  `).join('');
+  document.getElementById('d_note_input').value = d.note || '';
+
+  // dingtalk tab
+  const title = `${d.platform}-${d.name}-${d.product||''}-${d.type}`;
+  const appType = d.type === '寄拍' ? '物品内部借用（将归还仓库）' : '物品外赠（不归还，产品外寄客户，进部门费用）';
+  const dtFields = [
+    { label: '申请类型', value: appType },
+    { label: '标题', value: title },
+    { label: '发布类型', value: '仓库自行发货' },
+    ...(d.type === '送拍' ? [{ label: '渠道类型', value: '品牌推广-公共' }, { label: '产品线', value: '硬件当贝-自研' }] : []),
+    { label: '物品名称', value: d.product||'-' },
+    { label: '状态', value: '全新机' },
+    ...(d.type === '寄拍' ? [{ label: '归还时间', value: '种草后归还' }] : []),
+    { label: '物品用途', value: '达人种草' },
+    { label: '业务所属公司', value: '杭州当贝' },
+    { label: '数量', value: '1' },
+    { label: '领用详情', value: '达人种草' },
+    { label: '收件人信息', value: d.shipping||'（未填写）' },
+  ];
+  document.getElementById('d_dingtalk_content').innerHTML = `
+    <div class="dingtalk-title">📋 钉钉OA填写内容</div>
+    ${dtFields.map(f => `<div class="dingtalk-field"><div class="dingtalk-field-label">${f.label}</div><div class="dingtalk-field-value">${f.value}</div></div>`).join('')}
+    <button class="copy-all-btn" onclick="copyDetailDingtalk(${JSON.stringify(dtFields).replace(/"/g,'&quot;')})">复制全部信息</button>
+  `;
+
+  // data tab
+  document.getElementById('d_data_content').innerHTML = `
+    <div class="data-grid" style="margin-bottom:16px">
+      ${[['播放量','views','▶'],['点赞数','likes','♥'],['评论数','comments','💬'],['转化/电商','conversions','🛒']].map(([label,key,icon]) => `
+        <div class="data-card">
+          <div class="data-card-num">${d[key]||'—'}</div>
+          <div class="data-card-label">${icon} ${label}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      ${[['播放量','views'],['点赞数','likes'],['评论数','comments'],['转化/电商','conversions']].map(([label,key]) => `
+        <div class="form-group">
+          <label class="form-label">${label}</label>
+          <input class="form-input" id="dd_${key}" value="${d[key]||''}" placeholder="填写数据">
+        </div>
+      `).join('')}
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="saveData()">保存投放数据</button>
+  `;
+
+  // reset tabs
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelector('.tab').classList.add('active');
+  document.getElementById('tab_info').classList.add('active');
+
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function copyDetailDingtalk(fields) {
+  const text = fields.map(f => `【${f.label}】${f.value}`).join('\n');
+  navigator.clipboard.writeText(text).then(() => toast('已复制到剪贴板'));
+}
+
+function switchTab(el, tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+}
+
+function setStage(i) {
+  document.querySelectorAll('.stage-btn').forEach((b, idx) => {
+    b.classList.toggle('active', idx === i);
+    b.style.borderColor = idx === i ? STAGE_COLORS[i] : '';
+    b.style.color = idx === i ? STAGE_COLORS[i] : '';
+  });
+  const d = data.find(x => x.id === detailId);
+  if (d) d._pendingStage = i;
+}
+
+async function saveStageUpdate() {
+  const d = data.find(x => x.id === detailId);
+  if (!d) return;
+  if (d._pendingStage !== undefined) { d.stage = d._pendingStage; delete d._pendingStage; }
+  d.note = document.getElementById('d_note_input').value;
+  try {
+    await save(d);
+    await loadData();
+    toast('进度已更新');
+    closeModal('detailModal');
+  } catch(e) {}
+}
+
+async function saveData() {
+  const d = data.find(x => x.id === detailId);
+  if (!d) return;
+  ['views','likes','comments','conversions'].forEach(k => {
+    d[k] = document.getElementById('dd_' + k).value;
+  });
+  try {
+    await save(d);
+    toast('数据已保存');
+  } catch(e) {}
+}
+
+function editInfluencer(id) {
+  editingId = id;
+  const d = data.find(x => x.id === id);
+  if (!d) return;
+  document.getElementById('modalTitle').textContent = '编辑达人信息';
+  document.getElementById('f_platform').value = d.platform;
+  document.getElementById('f_name').value = d.name;
+  document.getElementById('f_fans').value = d.fans || '';
+  document.getElementById('f_category').value = d.category || '';
+  document.getElementById('f_type').value = d.type;
+  populateProductSelect(d.product || '');
+  document.getElementById('f_price').value = d.price || '';
+  document.getElementById('f_schedule').value = d.schedule || '';
+  document.getElementById('f_shipping').value = d.shipping || '';
+  document.getElementById('f_note').value = d.note || '';
+  document.getElementById('dingtalkBox').style.display = 'none';
+  document.getElementById('genBtn').style.display = 'inline-block';
+  closeModal('detailModal');
+  document.getElementById('addModal').classList.add('open');
+}
+
+async function deleteInfluencer(id) {
+  if (!confirm('确认删除该达人？')) return;
+  try {
+    await deleteRecord(id);
+    await loadData();
+    closeModal('detailModal');
+    toast('已删除');
+  } catch(e) { toast('删除失败'); }
+}
+
+function exportData() {
+  const csv = [
+    ['昵称','平台','粉丝','垂类','合作类型','产品','报价','档期','阶段','收件信息','播放量','点赞','评论','转化'].join(','),
+    ...data.map(d => [d.name,d.platform,d.fans,d.category,d.type,d.product,d.price,d.schedule,STAGES[d.stage],d.shipping,d.views,d.likes,d.comments,d.conversions].map(v => `"${(v||'').replace(/"/g,'""')}"`).join(','))
+  ].join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `达人合作数据_${new Date().toLocaleDateString('zh-CN').replace(/\//g,'')}.csv`;
+  a.click(); toast('导出成功');
+}
+
+// close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+populateProductSelect('');
+loadData();
+
+</script>
+</body>
+</html>
