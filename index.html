@@ -684,11 +684,6 @@ function openDetail(id) {
       <button class="btn btn-ghost" style="flex:1;color:var(--accent3);border-color:var(--accent3)" onclick="deleteInfluencer('${d.id}')">删除达人</button>
     </div>
   `;
-    <div style="margin-top:14px;display:flex;gap:10px">
-      <button class="btn btn-ghost" style="flex:1" onclick="editInfluencer('${d.id}')">编辑信息</button>
-      <button class="btn btn-ghost" style="flex:1;color:var(--accent3);border-color:var(--accent3)" onclick="deleteInfluencer('${d.id}')">删除达人</button>
-    </div>
-  `;
 
   // stage tab
   document.getElementById('d_stage_selector').innerHTML = STAGES.map((s, i) => `
